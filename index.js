@@ -109,6 +109,8 @@ app.post("/api/users/:_id/exercises", async (req, res) => {
 
 app.get("/api/users/:_id/logs", async (req, res) => {
   const userId = req.params._id;
+  const {from, to, limit} = req.query
+
 
   try {
     const user = await User.findById(userId);
@@ -117,9 +119,21 @@ app.get("/api/users/:_id/logs", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-   const log = user.exercises.map(exercise =>{
+    const fromDate = from ? new Date(from) : new Date('1970-01-01'); // Default to very early date if 'from' is not provided
+    const toDate = to ? new Date(to) : new Date();
+
+    const filteredExercises = user.exercises.filter(exercise => {
+      const exerciseDate = new Date(exercise.date);
+      return exerciseDate >= fromDate && exerciseDate <= toDate;
+    });
+
+    const limitedExercises = limit ? filteredExercises.slice(0, parseInt(limit)) : filteredExercises;
+
+
+    const log = limitedExercises.map(exercise =>{
     const dateObject = new Date(exercise.date)
     const dateString = dateObject.toDateString()
+
     return {
       ...exercise.toObject(), // Convert mongoose document to plain object
       date: dateString
